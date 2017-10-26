@@ -4,6 +4,7 @@ namespace armycreator\phpbb\event;
 
 use phpbb\auth\auth;
 use phpbb\config\config;
+use phpbb\db\driver\driver_interface;
 use phpbb\event\data;
 use phpbb\template\template;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
@@ -19,10 +20,13 @@ class listener implements EventSubscriberInterface
 
     private $config;
 
-    public function __construct(template $template, config $config)
+    private $db;
+
+    public function __construct(template $template, config $config, driver_interface $db)
     {
         $this->template = $template;
         $this->config = $config;
+        $this->db = $db;
     }
 
     public static function getSubscribedEvents()
@@ -36,10 +40,14 @@ class listener implements EventSubscriberInterface
     public function user_setup(data $event)
     {
         $user_data = $event->get_data()['user_data'];
+
         if ($user_data['is_registered'] && !$user_data['is_bot'])
         {
+            $admin_groups = $this->get_admin_groups();
+
             $this->template->assign_vars([
                 'user_data' => $user_data,
+                'is_contributor' => in_array($user_data['group_id'], $admin_groups),
             ]);
         }
     }
@@ -93,5 +101,24 @@ class listener implements EventSubscriberInterface
             'css_files' => $out_css_files,
             'js_files' => $out_js_files,
         ]);
+    }
+
+    private function get_admin_groups()
+    {
+        $sql = 'SELECT group_id
+            FROM ' . GROUPS_TABLE .
+            ' WHERE group_name IN(' .
+                '"' . $this->db->sql_escape('ADMINISTRATORS') . '", ' .
+                '"' . $this->db->sql_escape('Contributeurs') . '"' .
+            ')';
+        $result = $this->db->sql_query($sql);
+
+        $id_list = [];
+        while ($row = $this->db->sql_fetchrow($result)) {
+            $id_list[] = $row['group_id'];
+        }
+        $this->db->sql_freeresult($result);
+
+        return $id_list;
     }
 }

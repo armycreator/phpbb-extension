@@ -14,14 +14,12 @@
                 {#{% trans with { "%username%": armycreator_user.username } %}header.hello.%username%{% endtrans %}#}
                     Bonjour {{ user_data.username }}
 
-                    {#
-                    {% if is_granted('ROLE_CONTRIB') %}
+                    {% if is_contributor %}
                         |
-                        <a href="/admin/" title="{{ "main_menu.admin" }}" class="important">
-                            {{- "main_menu.admin" -}}
+                        <a href="/admin/" class="important">
+                            administration
                         </a>
                     {% endif %}
-                    #}
                     |
                     {% set sid = user_data.session_id %}
                     <a href="/forum/ucp.php?mode=logout&sid={{ sid }}">
